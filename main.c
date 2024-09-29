@@ -1,5 +1,6 @@
 /* You are not allowed to use <stdio.h> */
 #include "io.h"
+#include "mm.h"
 #include <stdlib.h>
 
 typedef struct Node {
@@ -19,13 +20,13 @@ void freeList (List* list) {
     while(list->head != NULL) {
         currentNode = list->head;
         list->head = list->head->next;
-        free(currentNode);
+        simple_free(currentNode);
     }
-    free(list);
+    simple_free(list);
 }
 
 Node* initNode(int value) {
-    Node* tempNode = (Node*) malloc(sizeof(Node));
+    Node* tempNode = (Node*) simple_malloc(sizeof(Node));
     tempNode->value = value;
     tempNode->next = NULL;
     tempNode->prev = NULL;
@@ -72,7 +73,7 @@ void deleteFromEnd(Node** head) {
     } else {
         *head = NULL;
     }
-    free(temp);
+    simple_free(temp);
 }
 
 /**
