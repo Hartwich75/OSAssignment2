@@ -1,5 +1,5 @@
 /**
- * @file   mm.c
+ * @file   memory_setup.c
  * @Author 02335 team
  * @date   September, 2024
  * @brief  Memory management skeleton.
