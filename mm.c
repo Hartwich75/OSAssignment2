@@ -128,7 +128,7 @@ void* simple_malloc(size_t size) {
 void simple_free(void * ptr) {
     if (ptr == NULL) return;  /* Null pointer check */
 
-    BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - sizeof(BlockHeader); /* Find the block corresponding to ptr */
+    BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - sizeof(BlockHeader)); /* Find the block corresponding to ptr */
     if (GET_FREE(block)) {
         /* Block is not in use -- probably an error */
         return;
