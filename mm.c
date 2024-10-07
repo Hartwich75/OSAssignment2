@@ -103,9 +103,9 @@ void* simple_malloc(size_t size) {
                     SET_NEXT(current, new_block);  /* Update current's next */
                     SET_FREE(current, 0);  /* Mark current block as allocated */
                 }
-
+                void *currAdd = (void *)((uintptr_t)current + sizeof(BlockHeader));
                 current = GET_NEXT(current);  /* Advance current */
-                return (void *)current->user_block; /* Return address of current's user_block */
+                return currAdd;
             }
         }
 
@@ -139,10 +139,10 @@ void simple_free(void * ptr) {
 
     /* Possibly coalesce consecutive free blocks here */
     BlockHeader * next_block = GET_NEXT(block);
-    while (next_block != (BlockHeader *)memory_end && GET_FREE(next_block)) {
-        SET_NEXT(block, GET_NEXT(next_block));  /* Merge the next block */
-        next_block = GET_NEXT(block);
+    if(GET_FREE(next_block)) {
+        SET_NEXT(block, GET_NEXT(next_block));
     }
+    current = first;
 }
 
 /* Include test routines */
