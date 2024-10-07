@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stddef.h>
 
 #include "mm.h"
 
@@ -21,7 +20,7 @@ typedef struct header {
 /* Macros to handle the free flag at bit 0 of the next pointer of header pointed at by p */
 #define GET_NEXT(p)    (BlockHeader *)((uintptr_t)(p->next) & ~0x1)    /* Mask out free flag */
 #define SET_NEXT(p,n)  p->next = (BlockHeader *)(((uintptr_t)n & ~0x1) | ((uintptr_t)p->next & 0x1))  /* Preserve free flag */
-#define GET_FREE(p)    (uint8_t) (((uintptr_t)(p->next) & 0x1) != 0)   /* Get the free flag */
+#define GET_FREE(p)    (uint8_t) (((uintptr_t)(p->next) & 0x1))   /* Get the free flag */
 #define SET_FREE(p,f)  p->next = (BlockHeader *)(((uintptr_t)GET_NEXT(p)) | ((f) ? 0x1 : 0x0))   /* Set free bit */
 #define SIZE(p)        ((size_t)((uintptr_t)GET_NEXT(p) - (uintptr_t)(p) - sizeof(BlockHeader)))  /* Calculate block size */
 
@@ -129,7 +128,7 @@ void* simple_malloc(size_t size) {
 void simple_free(void * ptr) {
     if (ptr == NULL) return;  /* Null pointer check */
 
-    BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - offsetof(BlockHeader, user_block)); /* Find the block corresponding to ptr */
+    BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - sizeof(BlockHeader); /* Find the block corresponding to ptr */
     if (GET_FREE(block)) {
         /* Block is not in use -- probably an error */
         return;
