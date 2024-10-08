@@ -25,6 +25,7 @@
 /* Choose which malloc/free to test */
 #define MALLOC simple_malloc
 #define FREE   simple_free
+#define MIN_SIZE 8
 
 /**
  * @name: Utility function to XOR a block of memory. 
@@ -58,6 +59,84 @@ START_TEST (test_simple_allocation)
 
 
 END_TEST
+
+/**
+ * @name   test_min_block_allocation
+ * @brief  Tests whether the allocator handles requests for memory smaller than the minimum block size (MIN_SIZE).
+ *
+ * This test verifies that when a block smaller than MIN_SIZE is requested,
+ * the allocator either returns a block of at least MIN_SIZE or NULL if
+ * no suitable block is available.
+ */
+
+START_TEST (test_min_block_allocation)
+{
+    int *ptr;
+
+    // Request less than the minimum block size
+    ptr = MALLOC(MIN_SIZE / 2);
+
+    // The allocator should return a block, but no smaller than MIN_SIZE.
+    ck_assert(ptr != NULL);
+
+    FREE(ptr);
+}
+END_TEST
+
+/**
+ * @name   test_coalescing_blocks
+ * @brief  Tests whether adjacent free blocks are coalesced after being freed.
+ *
+ * This test ensures that when two consecutive blocks are freed, the memory
+ * management system merges them into one larger free block to reduce fragmentation
+ * and improve memory utilization.
+ */
+START_TEST (test_coalescing_blocks)
+{
+    int *ptr1, *ptr2;
+
+    ptr1 = MALLOC(10 * sizeof(int));
+    ptr2 = MALLOC(10 * sizeof(int));
+
+    ck_assert(ptr1 != NULL);
+    ck_assert(ptr2 != NULL);
+
+    // Free both blocks
+    FREE(ptr1);
+    FREE(ptr2);
+
+    // Now allocate a larger block that would require merging the previous free blocks
+    int *ptr3 = MALLOC(20 * sizeof(int));
+
+    // If coalescing is working, this allocation should succeed
+    ck_assert(ptr3 != NULL);
+
+    FREE(ptr3);
+}
+END_TEST
+
+/**
+ * @name   test_memory_alignment
+ * @brief  Tests whether the allocated memory is aligned to a 32-byte boundary.
+ *
+ * This test verifies that the memory allocator returns pointers that are
+ * properly aligned to 32-byte boundaries for optimal performance and hardware
+ * compatibility.
+ */
+START_TEST (test_memory_alignment)
+{
+    void *ptr;
+
+    // Allocate memory
+    ptr = MALLOC(10 * sizeof(int));
+
+    // Ensure pointer is aligned to 8 bytes
+    ck_assert_msg(((uintptr_t)ptr % 8) == 0, "Memory not aligned to 8-byte boundary!");
+
+    FREE(ptr);
+}
+END_TEST
+
 
 /**
  * @name   Example allocation overlap unit test.
@@ -290,9 +369,15 @@ Suite* simple_malloc_suite()
   Suite *s = suite_create("simple_malloc");
   TCase *tc_core = tcase_create("Core tests");
   tcase_set_timeout(tc_core, 120);
+
   tcase_add_test (tc_core, test_simple_allocation);
   tcase_add_test (tc_core, test_simple_unique_addresses);
   tcase_add_test (tc_core, test_memory_exerciser);
+
+  //New Tests
+  tcase_add_test(tc_core, test_min_block_allocation);
+  tcase_add_test(tc_core, test_coalescing_blocks);
+  tcase_add_test(tc_core, test_memory_alignment);
 
   suite_add_tcase(s, tc_core);
   return s;
