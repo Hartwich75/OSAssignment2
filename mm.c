@@ -30,6 +30,7 @@ extern const uintptr_t memory_start, memory_end;
 
 static BlockHeader * first = NULL;
 static BlockHeader * current = NULL;
+static BlockHeader *last = NULL;
 
 /**
  * @name    align_up
@@ -49,18 +50,21 @@ return (x + (align - 1)) & ~(align - 1);
  *
  */
 void simple_init() {
-    uintptr_t aligned_memory_start = align_up(memory_start, sizeof(uintptr_t));  /* Align start */
-    uintptr_t aligned_memory_end   = align_up(memory_end, sizeof(uintptr_t));    /* Align end */
+    uintptr_t aligned_memory_start = memory_start + (memory_start % 64);  /* Align start */
+    uintptr_t aligned_memory_end   = memory_end - (memory_end % 64);   /* Align end */
 
     /* Already initialized ? */
     if (first == NULL) {
         /* Check that we have room for at least one free block and an end header */
         if (aligned_memory_start + 2 * sizeof(BlockHeader) + MIN_SIZE <= aligned_memory_end) {
-            first = (BlockHeader *)aligned_memory_start;  /* Initialize first block */
-            SET_NEXT(first, (BlockHeader *)aligned_memory_end);  /* End of memory is end block */
-            SET_FREE(first, 1);  /* Mark as free */
+            first = (BlockHeader *) aligned_memory_start;
+            last = (BlockHeader *) aligned_memory_end;
+            SET_FREE(first, 1);
+            SET_NEXT(first, last);
+            SET_NEXT(last, first);
+            SET_FREE(last, 1);
+            current = first;
         }
-        current = first;
     }
 }
 
