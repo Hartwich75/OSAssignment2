@@ -65,9 +65,9 @@ START_TEST (test_not_first_fit_strategy)
 
     ptr4 = MALLOC(20 * sizeof(int));
 
-    ck_assert_msg(ptr4 != ptr1, "Allocator uses first-fit, but this test expects it not to!");
+    ck_assert_msg(ptr4 != ptr1, "Allocator uses first-fit. NOT intended!");
 
-    ck_assert_msg(ptr4 == ptr3, "Allocator did not use the expected later block!");
+    ck_assert_msg(ptr4 == ptr3, "Allocator did not use the expected block!");
 
     FREE(ptr2);
     FREE(ptr4);
