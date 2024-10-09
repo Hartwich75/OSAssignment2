@@ -40,6 +40,41 @@ uint32_t sum_block(uint32_t *data, uint32_t size)
   return sum;
 }
 
+/**
+ * @name   test_not_first_fit_strategy
+ * @brief  Tests whether the allocator does not use the first-fit strategy.
+ *
+ * This test checks if the allocator skips the first available free block
+ * and allocates memory from a later block, which would demonstrate that it is
+ * not using the first-fit strategy.
+ */
+START_TEST (test_not_first_fit_strategy)
+{
+    int *ptr1, *ptr2, *ptr3, *ptr4;
+
+    ptr1 = MALLOC(20 * sizeof(int));
+    ptr2 = MALLOC(20 * sizeof(int));
+    ptr3 = MALLOC(20 * sizeof(int));
+
+    ck_assert(ptr1 != NULL);
+    ck_assert(ptr2 != NULL);
+    ck_assert(ptr3 != NULL);
+
+    FREE(ptr1);
+    FREE(ptr3);
+
+    ptr4 = MALLOC(20 * sizeof(int));
+
+    ck_assert_msg(ptr4 != ptr1, "Allocator uses first-fit, but this test expects it not to!");
+
+    ck_assert_msg(ptr4 == ptr3, "Allocator did not use the expected later block!");
+
+    FREE(ptr2);
+    FREE(ptr4);
+}
+END_TEST
+
+
 
 /**
  * @name   Example simple allocation unit test
@@ -378,6 +413,7 @@ Suite* simple_malloc_suite()
   tcase_add_test(tc_core, test_min_block_allocation);
   tcase_add_test(tc_core, test_coalescing_blocks);
   tcase_add_test(tc_core, test_memory_alignment);
+  tcase_add_test(tc_core, test_not_first_fit_strategy);
 
   suite_add_tcase(s, tc_core);
   return s;
