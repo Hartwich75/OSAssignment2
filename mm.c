@@ -66,16 +66,23 @@ void* simple_malloc(size_t size) {
         simple_init();
         if (first == NULL) return NULL;
     }
-
+    //Pad the requested size to a multiple of 8 bytes
     size_t aligned_size = align_up(size, sizeof(uintptr_t));
     BlockHeader * search_start = current;
 
     do {
         if (GET_FREE(current)) {
             if (SIZE(current) >= aligned_size) {
+                //The current block is large enough to contain the requested block
                 if (SIZE(current) - aligned_size < sizeof(BlockHeader) + MIN_SIZE) {
                     SET_FREE(current, 0);
                 } else {
+                    BlockHeader * next = (GET_NEXT(current));
+                    if ((GET_FREE(next)) && ((SIZE(current)+SIZE(next)+ 8) >= aligned_size)){
+                        //coalesce current block and next block
+                        SET_NEXT(current, GET_NEXT(next));
+                        SET_FREE(current,0);
+                    }
                     BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
                     SET_NEXT(new_block, GET_NEXT(current));
                     SET_FREE(new_block, 1);
@@ -102,12 +109,13 @@ void simple_free(void * ptr) {
     }
 
     SET_FREE(block, 1);
-
+/*
     BlockHeader * next_block = GET_NEXT(block);
     if (GET_FREE(next_block)) {
         SET_NEXT(block, GET_NEXT(next_block));
     }
     current = first;
+    */
 }
 
 /* Include test routines */
