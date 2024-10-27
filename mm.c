@@ -45,8 +45,10 @@ return (x + (align - 1)) & ~(align - 1);
 }
 
 void simple_init() {
-    uintptr_t aligned_memory_start = memory_start + (memory_start % 64);
-    uintptr_t aligned_memory_end   = memory_end - (memory_end % 64);
+    //Check if CPU is 32 or 64 bits
+    int instructionSetBits = sizeof(uintptr_t) * 8;
+    uintptr_t aligned_memory_start = memory_start + (memory_start % instructionSetBits);
+    uintptr_t aligned_memory_end   = memory_end - (memory_end % instructionSetBits);
 
     if (first == NULL) {
         if (aligned_memory_start + 2 * sizeof(BlockHeader) + MIN_SIZE <= aligned_memory_end) {
@@ -63,26 +65,40 @@ void simple_init() {
 
 void* simple_malloc(size_t size) {
     if (first == NULL) {
+        printf("simple_init() \n");
         simple_init();
+        printf("done \n");
         if (first == NULL) return NULL;
     }
     //Pad the requested size to a multiple of 8 bytes
     size_t aligned_size = align_up(size, sizeof(uintptr_t));
     BlockHeader * search_start = current;
+    int allocated = 0;
 
     do {
         if (GET_FREE(current)) {
             if (SIZE(current) >= aligned_size) {
                 //The current block is large enough to contain the requested block
+                printf("(SIZE(current) >= aligned_size) == true \n");
                 if (SIZE(current) - aligned_size < sizeof(BlockHeader) + MIN_SIZE) {
+                    printf("SET_FREE) \n");
                     SET_FREE(current, 0);
-                } else {
-                    BlockHeader * next = (GET_NEXT(current));
-                    if ((GET_FREE(next)) && ((SIZE(current)+SIZE(next)+ 8) >= aligned_size)){
-                        //coalesce current block and next block
-                        SET_NEXT(current, GET_NEXT(next));
-                        SET_FREE(current,0);
-                    }
+                    allocated = 1;
+                    printf("Done \n");
+                }
+            }
+            else {
+                printf("Assessing next block \n");
+                BlockHeader * next = (GET_NEXT(current));
+                if ((next != NULL) && (GET_FREE(next)) && ((SIZE(current)+SIZE(next)+ 8) >= aligned_size)) {
+                    printf("True \n");
+                    //coalesce current block and next block
+                    SET_NEXT(current, GET_NEXT(next));
+                    SET_FREE(current, 0);
+                    allocated = 1;
+                }}
+                BlockHeader * next = GET_NEXT(current);
+                if (allocated && next != NULL && SIZE(current) - aligned_size >= sizeof(BlockHeader) + MIN_SIZE) {
                     BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
                     SET_NEXT(new_block, GET_NEXT(current));
                     SET_FREE(new_block, 1);
