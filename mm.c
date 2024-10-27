@@ -70,53 +70,78 @@ void* simple_malloc(size_t size) {
         printf("done \n");
         if (first == NULL) return NULL;
     }
-    //Pad the requested size to a multiple of 8 bytes
+//Pad the requested size to a multiple of 8 bytes
     size_t aligned_size = align_up(size, sizeof(uintptr_t));
     BlockHeader * search_start = current;
     int allocated = 0;
 
-    do {
-        if (GET_FREE(current)) {
-            if (SIZE(current) >= aligned_size) {
-                //The current block is large enough to contain the requested block
+    do { // Search for a free block
+        if (GET_FREE(current)) { //the current block is free
+            if (SIZE(current) >= aligned_size) { // The current block is large enough to contain the requested block
                 printf("(SIZE(current) >= aligned_size) == true \n");
                 if (SIZE(current) - aligned_size < sizeof(BlockHeader) + MIN_SIZE) {
                     printf("SET_FREE) \n");
                     SET_FREE(current, 0);
                     allocated = 1;
                     printf("Done \n");
-                }
-            }
-            else {
-                printf("Assessing next block \n");
-                BlockHeader * next = (GET_NEXT(current));
-                if ((next != NULL) && (GET_FREE(next)) && ((SIZE(current)+SIZE(next)+ 8) >= aligned_size)) {
-                    printf("True \n");
-                    //coalesce current block and next block
-                    SET_NEXT(current, GET_NEXT(next));
-                    SET_FREE(current, 0);
-                    allocated = 1;
-                }}
-                BlockHeader * next = GET_NEXT(current);
-                if (allocated && next != NULL && SIZE(current) - aligned_size >= sizeof(BlockHeader) + MIN_SIZE) {
+                } else {
                     BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
                     SET_NEXT(new_block, GET_NEXT(current));
                     SET_FREE(new_block, 1);
                     SET_NEXT(current, new_block);
                     SET_FREE(current, 0);
+                    allocated = 1;
                 }
+            } else { //The current block is not large enough to contain the requested block
+                printf("Assessing next block \n");
+                BlockHeader * next = (GET_NEXT(current));
+                // Check if the next block is free and the combined block is large enough
+                if ((next != NULL) && (GET_FREE(next)) && ((SIZE(current) + SIZE(next) + 2*sizeof(uintptr_t)) >= aligned_size)) {
+                    // coalesce current block and next block
+                    SET_NEXT(current, GET_NEXT(next));
+                    SET_FREE(current, 0);
+                    allocated = 1;
+                    printf("Successfully coalesced 2 blocks\n");
+                }
+            }
+            // If a block has been allocated, check if it can be split further
+            if (allocated) {
+                printf("allocated = true \n");
+                //TODO check if this code is needed. What are we splitting and why?
+               /*
+                BlockHeader * next = GET_NEXT(current);
+                printf("Checking if block can be split \n");
+                if (next != NULL && SIZE(current) - aligned_size >= sizeof(BlockHeader) + MIN_SIZE) {
+                    printf("block can be split \n");
+                    // Split the allocated block into a used block and a new free block
+                    BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
+                    SET_NEXT(new_block, GET_NEXT(current));
+                    SET_FREE(new_block, 1);
+                    SET_NEXT(current, new_block);
+                    SET_FREE(current, 0);
+                } else {
+                    printf("No need to split the block \n");
+                } */
                 void *currAdd = (void *)((uintptr_t)current + sizeof(BlockHeader));
+
                 current = GET_NEXT(current);
-                return currAdd;
+                if ((uintptr_t)current > memory_end) {
+                    return NULL;
+                }
+                SET_NEXT(current, last);
+                printf("Returning address \n");
+                return currAdd; // Return the address of the allocated block
             }
         }
         current = GET_NEXT(current);
     } while (current != search_start);
 
+/* None found */
     return NULL;
 }
 
 void simple_free(void * ptr) {
+    printf("Simple free called\n");
     if (ptr == NULL) return;
 
     BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - sizeof(BlockHeader));
@@ -125,7 +150,8 @@ void simple_free(void * ptr) {
     }
 
     SET_FREE(block, 1);
-/*
+
+    /* Possibly coalesce consecutive free blocks here 
     BlockHeader * next_block = GET_NEXT(block);
     if (GET_FREE(next_block)) {
         SET_NEXT(block, GET_NEXT(next_block));
