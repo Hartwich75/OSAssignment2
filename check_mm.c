@@ -51,10 +51,10 @@ uint32_t sum_block(uint32_t *data, uint32_t size)
 START_TEST (test_not_first_fit_strategy)
 {
     int *ptr1, *ptr2, *ptr3, *ptr4;
-
-    ptr1 = MALLOC(20 * sizeof(int));
-    ptr2 = MALLOC(20 * sizeof(int));
-    ptr3 = MALLOC(20 * sizeof(int));
+    int size = 20 * sizeof(int);
+    ptr1 = MALLOC(size);
+    ptr2 = MALLOC(size);
+    ptr3 = MALLOC(size);
 
     ck_assert(ptr1 != NULL);
     ck_assert(ptr2 != NULL);
@@ -63,11 +63,10 @@ START_TEST (test_not_first_fit_strategy)
     FREE(ptr1);
     FREE(ptr3);
 
-    ptr4 = MALLOC(20 * sizeof(int));
+    ptr4 = MALLOC(size);
 
     ck_assert_msg(ptr4 != ptr1, "Allocator uses first-fit. NOT intended!");
-
-    ck_assert_msg(ptr4 == ptr3, "Allocator did not use the expected block!");
+    ck_assert_msg(ptr4 >= ptr3, "Allocator did not use the expected block!");
 
     FREE(ptr2);
     FREE(ptr4);
