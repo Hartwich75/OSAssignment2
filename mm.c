@@ -23,7 +23,6 @@ typedef struct header {
 #define GET_FREE(p)    (uint8_t) (((uintptr_t)(p->next) & 0x1))   /* Get the free flag */
 #define SET_FREE(p,f)  p->next = (BlockHeader *)(((uintptr_t)GET_NEXT(p)) | ((f) ? 0x1 : 0x0))   /* Set free bit */
 #define SIZE(p)        ((size_t)((uintptr_t)GET_NEXT(p) - (uintptr_t)(p) - sizeof(BlockHeader)))  /* Calculate block size */
-
 #define MIN_SIZE     (8)   // A block should have at least 8 bytes available for the user
 
 extern const uintptr_t memory_start, memory_end;
@@ -44,6 +43,15 @@ static inline size_t align_up(size_t x, size_t align) {
 return (x + (align - 1)) & ~(align - 1);
 }
 
+int coalesceNext(BlockHeader * curr) {
+    BlockHeader * next = GET_NEXT(curr);
+    if (GET_FREE(next)&& GET_FREE(curr)) {
+        SET_NEXT(curr, GET_NEXT(next));
+        return 1;
+    }
+    return 0;
+}
+
 void simple_init() {
     //Check if CPU is 32 or 64 bits
     int instructionSetBits = sizeof(uintptr_t) * 8;
@@ -53,11 +61,11 @@ void simple_init() {
     if (first == NULL) {
         if (aligned_memory_start + 2 * sizeof(BlockHeader) + MIN_SIZE <= aligned_memory_end) {
             first = (BlockHeader *) aligned_memory_start;
-            last = (BlockHeader *) aligned_memory_end;
+            last = (BlockHeader *) aligned_memory_end-sizeof(BlockHeader);
             SET_FREE(first, 1);
             SET_NEXT(first, last);
             SET_NEXT(last, first);
-            SET_FREE(last, 1);
+            SET_FREE(last, 0);
             current = first;
         }
     }
@@ -80,14 +88,22 @@ void* simple_malloc(size_t size) {
             if (SIZE(current) >= aligned_size) { // The current block is large enough to contain the requested block
                 printf("(SIZE(current) >= aligned_size) == true \n");
                 if (SIZE(current) - aligned_size < sizeof(BlockHeader) + MIN_SIZE) {
+                    //The current block is large enough to contain only the requested block
                     printf("SET_FREE) \n");
                     SET_FREE(current, 0);
                     allocated = 1;
                     printf("Done \n");
                 } else {
+                    //The current block is large enough to contain the requested block and a new free block
                     BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
-                    SET_NEXT(new_block, GET_NEXT(current));
+                    BlockHeader * next = GET_NEXT(current);
                     SET_FREE(new_block, 1);
+                    if (GET_FREE(next)){//If next is free, coalesce new block with next
+                        SET_NEXT(new_block, GET_NEXT(next));
+                    }
+                    else{ //If next is not free, set next as next of new block
+                        SET_NEXT(new_block, next);
+                    }
                     SET_NEXT(current, new_block);
                     SET_FREE(current, 0);
                     allocated = 1;
@@ -96,12 +112,16 @@ void* simple_malloc(size_t size) {
                 printf("Assessing next block \n");
                 BlockHeader * next = (GET_NEXT(current));
                 // Check if the next block is free and the combined block is large enough
-                if ((next != NULL) && (GET_FREE(next)) && ((SIZE(current) + SIZE(next) + 2*sizeof(uintptr_t)) >= aligned_size)) {
-                    // coalesce current block and next block
-                    SET_NEXT(current, GET_NEXT(next));
-                    SET_FREE(current, 0);
-                    allocated = 1;
-                    printf("Successfully coalesced 2 blocks\n");
+                if ((next != NULL) && (GET_FREE(next)) && ((SIZE(current) + SIZE(next) + sizeof(BlockHeader)) >= aligned_size)) {
+                    allocated = coalesceNext(current);
+                    if (allocated) {
+                        SET_FREE(current, 0);
+                        printf("Successfully coalesced 2 blocks\n");
+                    }
+                    else {
+                        printf("Failed to coalesce 2 blocks\n");
+                        return NULL;
+                    }
                 }
             }
             // If a block has been allocated, check if it can be split further
@@ -123,12 +143,14 @@ void* simple_malloc(size_t size) {
                     printf("No need to split the block \n");
                 } */
                 void *currAdd = (void *)((uintptr_t)current + sizeof(BlockHeader));
-
                 current = GET_NEXT(current);
                 if ((uintptr_t)current > memory_end) {
                     return NULL;
                 }
-                SET_NEXT(current, last);
+                if (GET_NEXT(current)==NULL){
+                    SET_NEXT(current, last);
+                }
+
                 printf("Returning address \n");
                 return currAdd; // Return the address of the allocated block
             }
@@ -146,18 +168,9 @@ void simple_free(void * ptr) {
 
     BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - sizeof(BlockHeader));
     if (GET_FREE(block)) {
-        return;
+        return; //block is already free
     }
-
     SET_FREE(block, 1);
-
-    /* Possibly coalesce consecutive free blocks here 
-    BlockHeader * next_block = GET_NEXT(block);
-    if (GET_FREE(next_block)) {
-        SET_NEXT(block, GET_NEXT(next_block));
-    }
-    current = first;
-    */
 }
 
 /* Include test routines */
