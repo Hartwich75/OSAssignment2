@@ -73,9 +73,9 @@ void simple_init() {
 
 void* simple_malloc(size_t size) {
     if (first == NULL) {
-        printf("simple_init() \n");
+        //printf("simple_init() \n");
         simple_init();
-        printf("done \n");
+        //printf("done \n");
         if (first == NULL) return NULL;
     }
 //Pad the requested size to a multiple of 8 bytes
@@ -86,13 +86,13 @@ void* simple_malloc(size_t size) {
     do { // Search for a free block
         if (GET_FREE(current)) { //the current block is free
             if (SIZE(current) >= aligned_size) { // The current block is large enough to contain the requested block
-                printf("(SIZE(current) >= aligned_size) == true \n");
+                //printf("(SIZE(current) >= aligned_size) == true \n");
                 if (SIZE(current) - aligned_size < sizeof(BlockHeader) + MIN_SIZE) {
                     //The current block is large enough to contain only the requested block
-                    printf("SET_FREE) \n");
+                    //printf("SET_FREE) \n");
                     SET_FREE(current, 0);
                     allocated = 1;
-                    printf("Done \n");
+                    //printf("Done \n");
                 } else {
                     //The current block is large enough to contain the requested block and a new free block
                     BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
@@ -109,39 +109,23 @@ void* simple_malloc(size_t size) {
                     allocated = 1;
                 }
             } else { //The current block is not large enough to contain the requested block
-                printf("Assessing next block \n");
+                //printf("Assessing next block \n");
                 BlockHeader * next = (GET_NEXT(current));
                 // Check if the next block is free and the combined block is large enough
                 if ((next != NULL) && (GET_FREE(next)) && ((SIZE(current) + SIZE(next) + sizeof(BlockHeader)) >= aligned_size)) {
                     allocated = coalesceNext(current);
                     if (allocated) {
                         SET_FREE(current, 0);
-                        printf("Successfully coalesced 2 blocks\n");
+                  //      printf("Successfully coalesced 2 blocks\n");
                     }
                     else {
-                        printf("Failed to coalesce 2 blocks\n");
+                    //    printf("Failed to coalesce 2 blocks\n");
                         return NULL;
                     }
                 }
             }
             // If a block has been allocated, check if it can be split further
             if (allocated) {
-                printf("allocated = true \n");
-                //TODO check if this code is needed. What are we splitting and why?
-               /*
-                BlockHeader * next = GET_NEXT(current);
-                printf("Checking if block can be split \n");
-                if (next != NULL && SIZE(current) - aligned_size >= sizeof(BlockHeader) + MIN_SIZE) {
-                    printf("block can be split \n");
-                    // Split the allocated block into a used block and a new free block
-                    BlockHeader * new_block = (BlockHeader *)((uintptr_t)current + sizeof(BlockHeader) + aligned_size);
-                    SET_NEXT(new_block, GET_NEXT(current));
-                    SET_FREE(new_block, 1);
-                    SET_NEXT(current, new_block);
-                    SET_FREE(current, 0);
-                } else {
-                    printf("No need to split the block \n");
-                } */
                 void *currAdd = (void *)((uintptr_t)current + sizeof(BlockHeader));
                 current = GET_NEXT(current);
                 if ((uintptr_t)current > memory_end) {
@@ -151,7 +135,7 @@ void* simple_malloc(size_t size) {
                     SET_NEXT(current, last);
                 }
 
-                printf("Returning address \n");
+               // printf("Returning address \n");
                 return currAdd; // Return the address of the allocated block
             }
         }
@@ -163,7 +147,7 @@ void* simple_malloc(size_t size) {
 }
 
 void simple_free(void * ptr) {
-    printf("Simple free called\n");
+    //printf("Simple free called\n");
     if (ptr == NULL) return;
 
     BlockHeader * block = (BlockHeader *)((uintptr_t)ptr - sizeof(BlockHeader));
