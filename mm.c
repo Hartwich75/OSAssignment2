@@ -53,10 +53,12 @@ int coalesceNext(BlockHeader * curr) {
 }
 
 void simple_init() {
-    //Check if CPU is 32 or 64 bits
-    int instructionSetBits = sizeof(uintptr_t) * 8;
-    uintptr_t aligned_memory_start = memory_start + (memory_start % instructionSetBits);
-    uintptr_t aligned_memory_end   = memory_end - (memory_end % instructionSetBits);
+    uintptr_t aligned_memory_start = memory_start + (8 - (memory_start % 8));
+    uintptr_t aligned_memory_end   = memory_end - (memory_end % 8);
+    printf("Memory_start padded from %lu to %lu\n", memory_start, aligned_memory_start);
+    printf("Total padding in bytes: %lu\n", aligned_memory_start - memory_start);
+    printf("Memory_end padded from %lu to %lu\n", memory_end, aligned_memory_end);
+    printf("Total padding in bytes: %lu\n", memory_end - aligned_memory_end);
 
     if (first == NULL) {
         if (aligned_memory_start + 2 * sizeof(BlockHeader) + MIN_SIZE <= aligned_memory_end) {
