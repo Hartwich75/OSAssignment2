@@ -55,11 +55,6 @@ int coalesceNext(BlockHeader * curr) {
 void simple_init() {
     uintptr_t aligned_memory_start = memory_start + (8 - (memory_start % 8));
     uintptr_t aligned_memory_end   = memory_end - (memory_end % 8);
-    printf("Memory_start padded from %lu to %lu\n", memory_start, aligned_memory_start);
-    printf("Total padding in bytes: %lu\n", aligned_memory_start - memory_start);
-    printf("Memory_end padded from %lu to %lu\n", memory_end, aligned_memory_end);
-    printf("Total padding in bytes: %lu\n", memory_end - aligned_memory_end);
-
     if (first == NULL) {
         if (aligned_memory_start + 2 * sizeof(BlockHeader) + MIN_SIZE <= aligned_memory_end) {
             first = (BlockHeader *) aligned_memory_start;
@@ -84,7 +79,7 @@ void* simple_malloc(size_t size) {
     size_t aligned_size = align_up(size, sizeof(uintptr_t));
     BlockHeader * search_start = current;
     int allocated = 0;
-
+    //current = first;
     do { // Search for a free block
         if (GET_FREE(current)) { //the current block is free
             if (SIZE(current) >= aligned_size) { // The current block is large enough to contain the requested block
